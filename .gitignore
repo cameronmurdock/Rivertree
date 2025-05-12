@@ -1,0 +1,13 @@
+# Cloudflare Wrangler specific
+.wrangler/
+
+# Node dependencies
+node_modules/
+
+# Environment files
+.env
+*.env
+.env.*
+
+# macOS specific
+.DS_Store

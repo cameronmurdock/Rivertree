@@ -1,0 +1,24 @@
+name = "notion-form-worker" # Change this to your desired worker name
+main = "src/index.js"
+compatibility_date = "2024-05-01" # Use a recent date
+
+# Variables accessible in the Worker script via `env.VARIABLE_NAME`
+[vars]
+NOTION_VERSION = "2022-06-28"
+
+# Secrets (set these using `wrangler secret put`)
+# NOTION_SECRET = "..."
+# NOTION_DB = "..."
+
+# Optional: KV Namespace for rate limiting
+# Uncomment and add your KV namespace ID after creating it
+# [[kv_namespaces]]
+# binding = "RATE_KV"
+# id = "your_kv_namespace_id_here"
+# preview_id = "your_kv_preview_id_here"
+
+# Optional: Add route for custom domain if needed
+# [env.production]
+# routes = [
+#   { pattern = "forms.yourdomain.com/*", custom_domain = true }
+# ]
