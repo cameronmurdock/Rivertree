@@ -3,106 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guestbook Signup</title>
+    <title>Welcome to Rivertree</title>
     <style>
-        body { font-family: sans-serif; line-height: 1.6; padding: 20px; max-width: 500px; margin: auto; background-color: #f4f4f4; }
-        form { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #333; }
-        label, input, textarea { display: block; width: 100%; margin-bottom: 15px; box-sizing: border-box; }
-        input[type="text"], input[type="email"], textarea {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        textarea { height: 100px; resize: vertical; }
-        button { 
-            background-color: #007bff; 
-            color: white; 
-            padding: 12px 20px; 
-            border: none; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-size: 16px;
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333; display: flex; flex-direction: column; align-items: center; min-height: 100vh; text-align: center; }
+        header {
+            background-color: #4A90E2;
+            color: white;
+            padding: 2em 0;
             width: 100%;
-            transition: background-color 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        button:hover { background-color: #0056b3; }
-        .status-message { margin-top: 15px; padding: 10px; border-radius: 4px; text-align: center; display: none; }
-        .status-message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .status-message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        header h1 { margin: 0; font-size: 2.5em; }
+        .container {
+            max-width: 800px;
+            margin: 2em auto;
+            padding: 2em;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        p { font-size: 1.1em; line-height: 1.6; }
+        a.button {
+            display: inline-block;
+            background-color: #50C878; /* Emerald green */
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+            margin-top: 20px;
+        }
+        a.button:hover {
+            background-color: #36A45C;
+        }
+        footer {
+            margin-top: auto;
+            padding: 1em 0;
+            width: 100%;
+            background-color: #333;
+            color: #aaa;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
+    <header>
+        <h1>Welcome to Rivertree</h1>
+    </header>
 
-    <h1>Join the Guestbook</h1>
-
-    <form id="guestbook-form">
-        <label for="name">Name:</label>
-        <input id="name" name="name" placeholder="Your Name" required>
-
-        <label for="email">Email:</label>
-        <input id="email" name="email" type="email" placeholder="your.email@example.com" required>
-
-        <label for="message">Message:</label>
-        <textarea id="message" name="message" placeholder="Leave a message..." required></textarea>
-
-        <button type="submit">Send</button>
+    <div class="container">
+        <p>This is the landing page for Rivertree projects and services.</p>
+        <p>We are dedicated to providing innovative solutions for coordination systems.</p>
         
-        <div id="status-message" class="status-message"></div>
-    </form>
+        <p>Check out our guestbook page:</p>
+        <a href="guestbook.html" class="button">Visit the Guestbook</a>
+    </div>
 
-    <script>
-        const form = document.getElementById('guestbook-form');
-        const statusMessage = document.getElementById('status-message');
-        // IMPORTANT: Use the actual deployed worker URL here
-        const workerUrl = 'https://notion-form-worker-production.riversideguestbook.workers.dev'; 
-
-        async function sendForm(e) {
-            e.preventDefault();
-            statusMessage.style.display = 'none'; // Hide previous messages
-            statusMessage.className = 'status-message'; // Reset class
-            const submitButton = form.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.textContent = 'Sending...';
-
-            const formData = {
-                name: form.name.value,
-                email: form.email.value,
-                message: form.message.value
-            };
-
-            try {
-                const response = await fetch(workerUrl, { // Use the variable for the URL
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(formData)
-                });
-
-                const result = await response.json(); // Try to parse JSON regardless of status
-
-                if (response.ok && result.ok) {
-                    statusMessage.textContent = result.message || "Thanks! Your submission was received.";
-                    statusMessage.classList.add('success');
-                    form.reset();
-                } else {
-                    // Display error message from worker (if JSON) or a generic one
-                    statusMessage.textContent = result.message || response.statusText || "An error occurred. Please try again later.";
-                    statusMessage.classList.add('error');
-                    console.error('Submission failed:', response.status, result);
-                }
-            } catch (error) {
-                statusMessage.textContent = "A network error occurred. Please check your connection and try again.";
-                statusMessage.classList.add('error');
-                console.error('Fetch error:', error);
-            } finally {
-                 statusMessage.style.display = 'block';
-                 submitButton.disabled = false;
-                 submitButton.textContent = 'Send';
-            }
-        }
-
-        form.addEventListener('submit', sendForm);
-    </script>
+    <footer>
+        <p>&copy; 2025 Rivertree. All rights reserved.</p>
+    </footer>
 
 </body>
 </html>
