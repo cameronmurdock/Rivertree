@@ -32,6 +32,113 @@ export default {
       ...requestDetails
     });
     
+    // --- GET /shift-tasks: Fetch all tasks for a given shift ---
+    if (url.pathname === '/shift-tasks' && req.method === 'GET') {
+      const shiftId = url.searchParams.get('shift');
+      if (!shiftId) {
+        return new Response(JSON.stringify({ error: 'Missing shift parameter' }), {
+          status: 400,
+          headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+        });
+      }
+      try {
+        // Replace with your Completed Tasks Notion DB ID
+        const completedTasksDbId = '1aa1503617b480e99f58f1de62991454';
+        const notionRes = await fetch(`https://api.notion.com/v1/databases/${completedTasksDbId}/query`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.NOTION_SECRET}`,
+            'Notion-Version': env.NOTION_VERSION || '2022-06-28',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            page_size: 100,
+            filter: {
+              property: 'Shifts',
+              relation: { contains: shiftId }
+            }
+          })
+        });
+        const data = await notionRes.json();
+        if (!notionRes.ok) {
+          return new Response(JSON.stringify({ error: 'Failed to fetch tasks', details: data }), {
+            status: 500,
+            headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+          });
+        }
+        // Map to task info
+        const tasks = (data.results || []).map(page => ({
+          id: page.id,
+          name: page.properties.Name?.title?.[0]?.plain_text || '(Untitled)',
+          points: page.properties.Points?.number || 0,
+          person: page.properties.Person?.rich_text?.[0]?.plain_text || '',
+          completed: !!page.properties['Approve QA']?.checkbox // or use another property if needed
+        }));
+        return new Response(JSON.stringify({ tasks }), {
+          status: 200,
+          headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: 'Error fetching tasks', details: err.message }), {
+          status: 500,
+          headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // --- POST /task-complete: Mark a task as complete/incomplete ---
+    if (url.pathname === '/task-complete' && req.method === 'POST') {
+      let body;
+      try {
+        body = await req.json();
+      } catch (e) {
+        return new Response(JSON.stringify({ error: 'Invalid JSON', details: e.message }), {
+          status: 400,
+          headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+        });
+      }
+      const { taskId, completed } = body;
+      if (!taskId || typeof completed !== 'boolean') {
+        return new Response(JSON.stringify({ error: 'Missing or invalid taskId/completed' }), {
+          status: 400,
+          headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+        });
+      }
+      try {
+        const notionRes = await fetch(`https://api.notion.com/v1/pages/${taskId}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${env.NOTION_SECRET}`,
+            'Notion-Version': env.NOTION_VERSION || '2022-06-28',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            properties: {
+              'Approve QA': { checkbox: completed }
+            }
+          })
+        });
+        const data = await notionRes.json();
+        if (!notionRes.ok) {
+          return new Response(JSON.stringify({ error: 'Failed to update task', details: data }), {
+            status: 500,
+            headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+          });
+        }
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: 'Error updating task', details: err.message }), {
+          status: 500,
+          headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
     // --- GET /projects: Fetch list of events/projects for dropdown ---
     if (url.pathname === '/projects' && req.method === 'GET') {
       try {

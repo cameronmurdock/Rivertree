@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shift Checklist</title>
+  <style>
+    body { font-family: sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 32px; }
+    h1 { text-align: center; color: #333; margin-bottom: 24px; }
+    .task-list { list-style: none; padding: 0; }
+    .task-item { display: flex; align-items: center; padding: 14px 0; border-bottom: 1px solid #eee; }
+    .task-item:last-child { border-bottom: none; }
+    .task-checkbox { margin-right: 16px; width: 22px; height: 22px; }
+    .task-details { flex: 1; }
+    .task-name { font-size: 1.1em; color: #222; }
+    .task-meta { color: #888; font-size: 0.97em; }
+    .points { background: #e3f4e1; color: #217a3a; border-radius: 4px; padding: 2px 8px; margin-left: 10px; font-weight: bold; font-size: 0.97em; }
+    .status-message { margin: 18px 0; padding: 12px; border-radius: 4px; display: none; text-align: center; }
+    .status-message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .status-message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Shift Checklist</h1>
+    <div id="status-message" class="status-message"></div>
+    <ul id="task-list" class="task-list"></ul>
+  </div>
+  <script>
+    const workerUrl = 'https://guestbook-worker.riversideguestbook.workers.dev';
+    const statusMessage = document.getElementById('status-message');
+    const taskList = document.getElementById('task-list');
+
+    // Get shift ID from query string
+    function getShiftId() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('shift');
+    }
+
+    async function loadTasks() {
+      const shiftId = getShiftId();
+      if (!shiftId) {
+        statusMessage.textContent = 'No shift specified.';
+        statusMessage.className = 'status-message error';
+        statusMessage.style.display = 'block';
+        return;
+      }
+      statusMessage.style.display = 'none';
+      taskList.innerHTML = '<li>Loading tasks...</li>';
+      try {
+        const res = await fetch(workerUrl + `/shift-tasks?shift=${encodeURIComponent(shiftId)}`);
+        const data = await res.json();
+        if (!data.tasks || !data.tasks.length) {
+          taskList.innerHTML = '<li>No tasks found for this shift.</li>';
+          return;
+        }
+        renderTasks(data.tasks);
+      } catch (err) {
+        statusMessage.textContent = 'Failed to load tasks.';
+        statusMessage.className = 'status-message error';
+        statusMessage.style.display = 'block';
+        taskList.innerHTML = '';
+      }
+    }
+
+    function renderTasks(tasks) {
+      taskList.innerHTML = '';
+      tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.className = 'task-item';
+        li.innerHTML = `
+          <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} data-id="${task.id}">
+          <div class="task-details">
+            <span class="task-name">${task.name}</span>
+            <span class="points">${task.points} pts</span><br>
+            <span class="task-meta">Assigned: ${task.person}</span>
+          </div>
+        `;
+        const checkbox = li.querySelector('.task-checkbox');
+        checkbox.addEventListener('change', async (e) => {
+          checkbox.disabled = true;
+          statusMessage.style.display = 'none';
+          try {
+            const resp = await fetch(workerUrl + '/task-complete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ taskId: task.id, completed: checkbox.checked })
+            });
+            const result = await resp.json();
+            if (result.success) {
+              statusMessage.textContent = checkbox.checked ? 'Task marked complete!' : 'Task marked incomplete!';
+              statusMessage.className = 'status-message success';
+            } else {
+              statusMessage.textContent = result.error || 'Failed to update task.';
+              statusMessage.className = 'status-message error';
+              checkbox.checked = !checkbox.checked; // revert
+            }
+          } catch (err) {
+            statusMessage.textContent = 'Failed to update task.';
+            statusMessage.className = 'status-message error';
+            checkbox.checked = !checkbox.checked; // revert
+          }
+          statusMessage.style.display = 'block';
+          checkbox.disabled = false;
+        });
+        taskList.appendChild(li);
+      });
+    }
+
+    loadTasks();
+  </script>
+</body>
+</html>
