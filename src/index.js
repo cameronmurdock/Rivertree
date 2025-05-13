@@ -32,6 +32,54 @@ export default {
       ...requestDetails
     });
     
+    // --- GET /shifts: Fetch all unique shifts for dropdown ---
+    if (url.pathname === '/shifts' && req.method === 'GET') {
+      try {
+        // Query all tasks and extract unique shift IDs and names
+        const completedTasksDbId = '1aa1503617b480e99f58f1de62991454';
+        const notionRes = await fetch(`https://api.notion.com/v1/databases/${completedTasksDbId}/query`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.NOTION_SECRET}`,
+            'Notion-Version': env.NOTION_VERSION || '2022-06-28',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ page_size: 100 })
+        });
+        const data = await notionRes.json();
+        if (!notionRes.ok) {
+          return new Response(JSON.stringify({ error: 'Failed to fetch shifts', details: data }), {
+            status: 500,
+            headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+          });
+        }
+        // Collect unique shift IDs and names
+        const shiftMap = {};
+        (data.results || []).forEach(page => {
+          const shifts = page.properties.Shifts?.relation || [];
+          shifts.forEach(rel => {
+            const id = rel.id;
+            // Try to get shift name from related property if available (Notion API doesn't expand relation by default)
+            if (!shiftMap[id]) {
+              shiftMap[id] = { id, name: id };
+            }
+          });
+        });
+        // Return as array
+        const shifts = Object.values(shiftMap);
+        return new Response(JSON.stringify({ shifts }), {
+          status: 200,
+          headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: 'Error fetching shifts', details: err.message }), {
+          status: 500,
+          headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
     // --- GET /shift-tasks: Fetch all tasks for a given shift ---
     if (url.pathname === '/shift-tasks' && req.method === 'GET') {
       const shiftId = url.searchParams.get('shift');
