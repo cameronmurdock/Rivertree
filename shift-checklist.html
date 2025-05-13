@@ -24,26 +24,79 @@
 <body>
   <div class="container">
     <h1>Shift Checklist</h1>
+    <label for="shift-select" style="font-weight:600;">Select Shift:</label>
+    <select id="shift-select" style="width:100%;margin:10px 0 24px 0;padding:8px;font-size:1em;"></select>
     <div id="status-message" class="status-message"></div>
     <ul id="task-list" class="task-list"></ul>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
   <script>
     const workerUrl = 'https://guestbook-worker.riversideguestbook.workers.dev';
     const statusMessage = document.getElementById('status-message');
     const taskList = document.getElementById('task-list');
+    const shiftSelect = document.getElementById('shift-select');
+    let choices;
 
     // Get shift ID from query string
     function getShiftId() {
       const params = new URLSearchParams(window.location.search);
       return params.get('shift');
     }
+    function setShiftId(shiftId) {
+      const params = new URLSearchParams(window.location.search);
+      params.set('shift', shiftId);
+      window.history.replaceState({}, '', `${location.pathname}?${params}`);
+    }
 
-    async function loadTasks() {
-      const shiftId = getShiftId();
+    async function loadShiftsAndInit() {
+      shiftSelect.innerHTML = '<option>Loading shifts...</option>';
+      try {
+        const res = await fetch(workerUrl + '/shifts');
+        const data = await res.json();
+        shiftSelect.innerHTML = '';
+        if (!data.shifts || !data.shifts.length) {
+          shiftSelect.innerHTML = '<option>No shifts found</option>';
+          shiftSelect.disabled = true;
+          return;
+        }
+        data.shifts.forEach(shift => {
+          const opt = document.createElement('option');
+          opt.value = shift.id;
+          opt.textContent = shift.name.length > 10 ? shift.name.slice(0,10) + '...' : shift.name;
+          opt.title = shift.name;
+          shiftSelect.appendChild(opt);
+        });
+        // Choices.js for search
+        choices = new Choices(shiftSelect, {
+          searchEnabled: true,
+          itemSelectText: '',
+          shouldSort: false
+        });
+        // Auto-select from URL if present
+        const urlShiftId = getShiftId();
+        if (urlShiftId) {
+          shiftSelect.value = urlShiftId;
+          choices.setChoiceByValue(urlShiftId);
+          loadTasks(urlShiftId);
+        }
+        shiftSelect.addEventListener('change', e => {
+          const shiftId = shiftSelect.value;
+          setShiftId(shiftId);
+          loadTasks(shiftId);
+        });
+      } catch (err) {
+        shiftSelect.innerHTML = '<option>Error loading shifts</option>';
+        shiftSelect.disabled = true;
+      }
+    }
+
+    async function loadTasks(shiftId) {
       if (!shiftId) {
-        statusMessage.textContent = 'No shift specified.';
+        statusMessage.textContent = 'No shift selected.';
         statusMessage.className = 'status-message error';
         statusMessage.style.display = 'block';
+        taskList.innerHTML = '';
         return;
       }
       statusMessage.style.display = 'none';
@@ -63,6 +116,8 @@
         taskList.innerHTML = '';
       }
     }
+
+    loadShiftsAndInit();
 
     function renderTasks(tasks) {
       taskList.innerHTML = '';
