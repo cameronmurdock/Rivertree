@@ -4,17 +4,13 @@
   "description": "This worker provides a public endpoint to receive form submissions (JSON) and add them as rows to a specified Notion database.",
   "main": "index.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250510.0",
-    "@vitejs/plugin-react": "^4.4.1",
-    "vite": "^6.3.5",
     "wrangler": "^4.14.4"
   },
   "dependencies": {

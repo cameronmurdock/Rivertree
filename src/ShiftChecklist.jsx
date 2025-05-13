@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 
 const API_BASE = '/'; // Adjust if needed
 
@@ -97,4 +98,6 @@ function ShiftChecklist() {
   );
 }
 
-export default ShiftChecklist;
+const domContainer = document.querySelector('#root');
+const root = ReactDOM.createRoot(domContainer);
+root.render(<ShiftChecklist />);
