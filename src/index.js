@@ -17,9 +17,7 @@ export default {
       return new Response("Method Not Allowed", { status: 405, headers: CORS });
     }
 
-    // --- Optional: Rate Limiting --- 
-    // Requires KV binding 'RATE_KV' in wrangler.toml and namespace creation
-    // Remove or comment out this block if not using rate limiting
+    // Rate Limiting (optional - requires KV binding 'RATE_KV' in wrangler.toml)
     if (env.RATE_KV) {
       try {
         const ip = req.headers.get("CF-Connecting-IP");
@@ -28,20 +26,22 @@ export default {
             const currentHits = await env.RATE_KV.get(key, { type: 'text' });
             const hits = parseInt(currentHits || "0", 10);
 
-            if (hits >= 30) { // Limit: 30 requests
-                return new Response("Rate limit exceeded", { status: 429, headers: CORS });
+            if (hits >= 30) { // Limit: 30 requests per 10 minutes
+                return new Response("Rate limit exceeded. Please try again later.", { 
+                  status: 429, 
+                  headers: { ...CORS, 'Retry-After': '600' } 
+                });
             }
             
             // Increment count, expire after 10 minutes (600 seconds)
-            // Use waitUntil to avoid blocking the response
             ctx.waitUntil(env.RATE_KV.put(key, (hits + 1).toString(), { expirationTtl: 600 })); 
         } else {
             console.warn("Could not determine client IP for rate limiting.");
-            // Decide if you want to block or allow requests without IP
+            // Continue without rate limiting if IP can't be determined
         }
-      } catch (kvError) {
-          console.error("KV Error for rate limiting:", kvError);
-          // Decide if you want to block or allow if KV fails
+      } catch (error) {
+          console.error("Rate limiting error:", error);
+          // Continue without rate limiting if there's an error
       }
     }
     // --- End Optional: Rate Limiting ---
@@ -84,12 +84,12 @@ export default {
         // Add the fixed Membership Type
         // ASSUMPTION: Property named 'Membership Type' exists in Notion of type 'Select'
         // If it's a 'Text' type, use: { rich_text: [{ text: { content: "Guest" } }] }
-        "Membership Type": { select: { name: "Guest" } },
+        "Membership Type": { multi_select: [{ name: "Guest" }] },
 
         // Optional: Add a 'Timestamp' property (Type: Date) in Notion 
         // and uncomment below if you want the Worker to set it.
         // Otherwise, use Notion's built-in 'Created time' property.
-        // "Timestamp": { date: { start: new Date().toISOString() } } 
+        "Guestbook Date": { date: { start: new Date().toISOString() } } 
       }
     };
 

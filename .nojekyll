@@ -1,0 +1,2 @@
+# This file ensures that GitHub Pages doesn't use Jekyll, which would ignore files starting with an underscore
+# like our _headers file.

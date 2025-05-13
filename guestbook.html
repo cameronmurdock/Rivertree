@@ -54,8 +54,8 @@
     <script>
         const form = document.getElementById('guestbook-form');
         const statusMessage = document.getElementById('status-message');
-        // IMPORTANT: Use the actual deployed worker URL here
-        const workerUrl = 'https://notion-form-worker-production.riversideguestbook.workers.dev'; 
+        // Cloudflare Worker URL
+        const workerUrl = 'https://guestbook-worker.riversideguestbook.workers.dev';
 
         async function sendForm(e) {
             e.preventDefault();

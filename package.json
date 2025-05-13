@@ -1,0 +1,16 @@
+{
+  "name": "guestbook",
+  "version": "1.0.0",
+  "description": "This worker provides a public endpoint to receive form submissions (JSON) and add them as rows to a specified Notion database.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250510.0",
+    "wrangler": "^4.14.4"
+  }
+}
