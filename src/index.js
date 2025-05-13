@@ -188,6 +188,10 @@ export default {
               'Completed By': props.Person // or whoever is completing, adjust as needed
             };
             // Create Completed Task page
+            const createPayload = {
+              parent: { database_id: completedTasksDbId },
+              properties: newProps
+            };
             const createRes = await fetch('https://api.notion.com/v1/pages', {
               method: 'POST',
               headers: {
@@ -196,13 +200,18 @@ export default {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
               },
-              body: JSON.stringify({
-                parent: { database_id: completedTasksDbId },
-                properties: newProps
-              })
+              body: JSON.stringify(createPayload)
             });
             const createData = await createRes.json();
-            results.push({ taskId, completed: true, createdId: createData.id || null, success: createRes.ok, error: createRes.ok ? null : createData });
+            results.push({
+              taskId,
+              completed: true,
+              createdId: createData.id || null,
+              success: createRes.ok,
+              error: createRes.ok ? null : createData,
+              sentProperties: newProps,
+              sentPayload: createPayload
+            });
           } else {
             results.push({ taskId, completed: false, success: true });
           }
