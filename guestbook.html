@@ -46,16 +46,45 @@
         <label for="message">Message:</label>
         <textarea id="message" name="message" placeholder="Leave a message..." required></textarea>
 
+        <label for="event">Event:</label>
+        <select id="event" name="event" required>
+            <option value="">Loading events...</option>
+        </select>
+
         <button type="submit">Send</button>
         
         <div id="status-message" class="status-message"></div>
     </form>
 
+    <!-- Choices.js for searchable dropdown -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
     <script>
         const form = document.getElementById('guestbook-form');
         const statusMessage = document.getElementById('status-message');
+        const eventSelect = document.getElementById('event');
         // Cloudflare Worker URL
         const workerUrl = 'https://guestbook-worker.riversideguestbook.workers.dev';
+
+        // Populate events dropdown
+        async function loadEvents() {
+            try {
+                const res = await fetch(workerUrl + '/projects');
+                const data = await res.json();
+                eventSelect.innerHTML = '';
+                if (data.projects && data.projects.length) {
+                    eventSelect.innerHTML = '<option value="">Select an event...</option>' +
+                        data.projects.map(ev => `<option value="${ev.id}">${ev.name}</option>`).join('');
+                } else {
+                    eventSelect.innerHTML = '<option value="">No events found</option>';
+                }
+            } catch (err) {
+                eventSelect.innerHTML = '<option value="">Failed to load events</option>';
+            }
+        }
+        loadEvents().then(() => {
+            new Choices(eventSelect, { searchEnabled: true, itemSelectText: '', shouldSort: false });
+        });
 
         async function sendForm(e) {
             e.preventDefault();
@@ -68,7 +97,8 @@
             const formData = {
                 name: form.name.value,
                 email: form.email.value,
-                message: form.message.value
+                message: form.message.value,
+                eventId: form.event.value
             };
 
             try {
