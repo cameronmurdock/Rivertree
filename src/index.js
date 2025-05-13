@@ -145,11 +145,13 @@ export default {
           headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
         });
       }
-      // Batch update tasks (sequentially, due to Notion API rate limits)
+      // For each checked/completed task, create a Completed Task page
+      const completedTasksDbId = '1aa1503617b480e99f58f1de62991454';
       let results = [];
       for (const { taskId, completed } of updates) {
         try {
-          const notionRes = await fetch(`https://api.notion.com/v1/pages/${taskId}`, {
+          // Always update the original task's checkbox
+          await fetch(`https://api.notion.com/v1/pages/${taskId}`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Bearer ${env.NOTION_SECRET}`,
@@ -163,8 +165,47 @@ export default {
               }
             })
           });
-          const data = await notionRes.json();
-          results.push({ taskId, success: notionRes.ok, error: notionRes.ok ? null : data });
+          // Only create Completed Task if marked complete
+          if (completed) {
+            // Fetch the original task's properties
+            const taskRes = await fetch(`https://api.notion.com/v1/pages/${taskId}`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${env.NOTION_SECRET}`,
+                'Notion-Version': env.NOTION_VERSION || '2022-06-28',
+                'Accept': 'application/json'
+              }
+            });
+            const taskData = await taskRes.json();
+            // Prepare properties for Completed Task
+            const props = taskData.properties || {};
+            // Compose new Completed Task properties (adjust as needed for your schema)
+            const newProps = {
+              'Name': props.Name,
+              'Points': props.Points,
+              'Person': props.Person,
+              'Shift': props.Shift,
+              'Completed By': props.Person // or whoever is completing, adjust as needed
+            };
+            // Create Completed Task page
+            const createRes = await fetch('https://api.notion.com/v1/pages', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${env.NOTION_SECRET}`,
+                'Notion-Version': env.NOTION_VERSION || '2022-06-28',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify({
+                parent: { database_id: completedTasksDbId },
+                properties: newProps
+              })
+            });
+            const createData = await createRes.json();
+            results.push({ taskId, completed: true, createdId: createData.id || null, success: createRes.ok, error: createRes.ok ? null : createData });
+          } else {
+            results.push({ taskId, completed: false, success: true });
+          }
         } catch (err) {
           results.push({ taskId, success: false, error: err.message });
         }
