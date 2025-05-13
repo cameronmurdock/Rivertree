@@ -127,6 +127,54 @@ export default {
       }
     }
 
+    // --- POST /shift-complete: Batch mark tasks as complete/incomplete for a shift ---
+    if (url.pathname === '/shift-complete' && req.method === 'POST') {
+      let body;
+      try {
+        body = await req.json();
+      } catch (e) {
+        return new Response(JSON.stringify({ error: 'Invalid JSON', details: e.message }), {
+          status: 400,
+          headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+        });
+      }
+      const { updates } = body; // [{taskId, completed}]
+      if (!Array.isArray(updates) || !updates.length) {
+        return new Response(JSON.stringify({ error: 'Missing or invalid updates array' }), {
+          status: 400,
+          headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+        });
+      }
+      // Batch update tasks (sequentially, due to Notion API rate limits)
+      let results = [];
+      for (const { taskId, completed } of updates) {
+        try {
+          const notionRes = await fetch(`https://api.notion.com/v1/pages/${taskId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${env.NOTION_SECRET}`,
+              'Notion-Version': env.NOTION_VERSION || '2022-06-28',
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              properties: {
+                'Approve QA': { checkbox: completed }
+              }
+            })
+          });
+          const data = await notionRes.json();
+          results.push({ taskId, success: notionRes.ok, error: notionRes.ok ? null : data });
+        } catch (err) {
+          results.push({ taskId, success: false, error: err.message });
+        }
+      }
+      return new Response(JSON.stringify({ results }), {
+        status: 200,
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+      });
+    }
+
     // --- POST /task-complete: Mark a task as complete/incomplete ---
     if (url.pathname === '/task-complete' && req.method === 'POST') {
       let body;
