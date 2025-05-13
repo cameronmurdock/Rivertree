@@ -82,9 +82,9 @@ export default {
         });
       }
       try {
-        // Replace with your Completed Tasks Notion DB ID
-        const completedTasksDbId = '1aa1503617b480e99f58f1de62991454';
-        const notionRes = await fetch(`https://api.notion.com/v1/databases/${completedTasksDbId}/query`, {
+        // Use the main Tasks Notion DB ID
+        const tasksDbId = '19b1503617b48089a0def05095757fda';
+        const notionRes = await fetch(`https://api.notion.com/v1/databases/${tasksDbId}/query`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${env.NOTION_SECRET}`,
@@ -95,7 +95,7 @@ export default {
           body: JSON.stringify({
             page_size: 100,
             filter: {
-              property: 'Shifts',
+              property: 'Shift',
               relation: { contains: shiftId }
             }
           })
