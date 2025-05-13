@@ -28,6 +28,7 @@
     <select id="shift-select" style="width:100%;margin:10px 0 24px 0;padding:8px;font-size:1em;"></select>
     <div id="status-message" class="status-message"></div>
     <ul id="task-list" class="task-list"></ul>
+    <button id="complete-shift-btn" style="display:block;width:100%;margin-top:24px;padding:14px 0;background:#217a3a;color:#fff;font-size:1.1em;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Complete Shift</button>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
@@ -118,6 +119,44 @@
     }
 
     loadShiftsAndInit();
+
+    // Complete Shift button logic
+    const completeBtn = document.getElementById('complete-shift-btn');
+    completeBtn.addEventListener('click', async () => {
+      const checkboxes = document.querySelectorAll('.task-checkbox');
+      const updates = Array.from(checkboxes).map(cb => ({
+        taskId: cb.getAttribute('data-id'),
+        completed: cb.checked
+      }));
+      if (!updates.length) {
+        statusMessage.textContent = 'No tasks to save.';
+        statusMessage.className = 'status-message error';
+        statusMessage.style.display = 'block';
+        return;
+      }
+      completeBtn.disabled = true;
+      statusMessage.style.display = 'none';
+      try {
+        const resp = await fetch(workerUrl + '/shift-complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ updates })
+        });
+        const result = await resp.json();
+        if (result.results && result.results.every(r => r.success)) {
+          statusMessage.textContent = 'All tasks saved!';
+          statusMessage.className = 'status-message success';
+        } else {
+          statusMessage.textContent = 'Some tasks failed to save.';
+          statusMessage.className = 'status-message error';
+        }
+      } catch (err) {
+        statusMessage.textContent = 'Failed to save tasks.';
+        statusMessage.className = 'status-message error';
+      }
+      statusMessage.style.display = 'block';
+      completeBtn.disabled = false;
+    });
 
     function renderTasks(tasks) {
       taskList.innerHTML = '';
