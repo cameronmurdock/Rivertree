@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 
-const API_BASE = '/'; // Adjust if needed
+const API_BASE = 'https://guestbook-worker.gen.gratis.workers.dev/'; // Adjust if needed
 
 function ShiftChecklist() {
   const [shifts, setShifts] = useState([]);
