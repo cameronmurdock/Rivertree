@@ -158,38 +158,38 @@ export default {
       // We'll continue without the event relation if there's an error
     }
       
-    // Create a clean message without any metadata
+    // Simple message without metadata
     const cleanMessage = message.trim();
     
-    console.log('Creating Notion payload with correct field types');
+    console.log('Creating Notion payload with explicit phone and source fields');
     
-    // Create Notion payload with the exact field types needed
+    // IMPORTANT: The structure of this Notion payload must match your database exactly
     notionPayload = {
       parent: { database_id: env.NOTION_DB },
       properties: {
-        // Main fields
+        // Basic fields that must exist
         "Name": { title: [{ text: { content: name } }] }, 
         "Email": { email: email }, 
         "Message": { rich_text: [{ text: { content: cleanMessage } }] },
         
-        // Set Phone as plain text field
-        // If the column is actually called "Phone Number", this won't affect anything
-        "Phone": { rich_text: [{ text: { content: phone || "" } }] },
+        // Phone field - CRITICAL fix #1
+        "Phone": { phone: phone || null },
         
-        // Set Source as plain text field (not multiselect)
-        "Source": { rich_text: [{ text: { content: "Guestbook" } }] },
+        // Source field - CRITICAL fix #2 
+        "Source": { select: { name: "Guestbook" } },
         
         // Standard fields
         "Membership Type": { multi_select: [{ name: "Guest" }] },
         "Guestbook Date": { date: { start: new Date().toISOString() } },
         "Event": { rich_text: [{ text: { content: eventName } }] },
         
-        // Only add the relation if we found a valid event ID
+        // Event relation
         ...(eventId ? { "Events Attended": { relation: [{ id: eventId }] } } : {})
       }
     };
     
-    console.log('Notion payload created with correct field types');
+    // Debug the full payload
+    console.log('Full Notion payload:', JSON.stringify(notionPayload, null, 2));
 
     // Call Notion API to create the guestbook entry
     try {
