@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dead Night Guestbook</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 500px;
+            margin: auto;
+        }
+        h1 {
+            color: #d32f2f; /* Dark red for Dead Night theme */
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #d32f2f;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #b71c1c; /* Darker red */
+        }
+        #responseMessage {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .success {
+            background-color: #e8f5e9; /* Light green */
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+        .error {
+            background-color: #ffebee; /* Light red */
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dead Night - Guestbook</h1>
+        <form id="guestbookForm">
+            <div>
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div>
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div>
+                <label for="phone">Phone (Optional):</label>
+                <input type="tel" id="phone" name="phone">
+            </div>
+            <div>
+                <label for="contactPreference">Contact Preference (Optional):</label>
+                <select id="contactPreference" name="contactPreference">
+                    <option value="Not Specified">Not Specified</option>
+                    <option value="Email">Email</option>
+                    <option value="Phone">Phone</option>
+                    <option value="Do Not Contact">Do Not Contact</option>
+                </select>
+            </div>
+            <div>
+                <label for="message">Message:</label>
+                <textarea id="message" name="message" rows="4" required></textarea>
+            </div>
+            <div>
+                <label for="source">How did you hear about this? (Optional):</label>
+                <input type="text" id="source" name="source" placeholder="e.g., Friend, Social Media">
+            </div>
+            <button type="submit">Sign Guestbook</button>
+        </form>
+        <div id="responseMessage"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('guestbookForm');
+        const responseMessageDiv = document.getElementById('responseMessage');
+        // IMPORTANT: Replace this with your actual worker URL
+        const workerUrl = 'YOUR_DEADNIGHT_WORKER_URL'; 
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            responseMessageDiv.textContent = '';
+            responseMessageDiv.className = '';
+
+            const formData = new FormData(form);
+            const data = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                message: formData.get('message'),
+                phone: formData.get('phone') || null, // Send null if empty
+                contactPreference: formData.get('contactPreference'),
+                source: formData.get('source') || 'Guestbook' // Default source if empty
+            };
+
+            if (!workerUrl || workerUrl === 'YOUR_DEADNIGHT_WORKER_URL') {
+                responseMessageDiv.textContent = 'Error: Worker URL is not configured in the HTML.';
+                responseMessageDiv.className = 'error';
+                return;
+            }
+
+            try {
+                const response = await fetch(workerUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    responseMessageDiv.textContent = 'Thank you for signing the guestbook!';
+                    responseMessageDiv.className = 'success';
+                    form.reset();
+                } else {
+                    responseMessageDiv.textContent = `Error: ${result.message || result.error || 'Unknown error'}`;
+                    responseMessageDiv.className = 'error';
+                }
+            } catch (error) {
+                console.error('Submission error:', error);
+                responseMessageDiv.textContent = 'An error occurred while submitting the form.';
+                responseMessageDiv.className = 'error';
+            }
+        });
+    </script>
+</body>
+</html>
