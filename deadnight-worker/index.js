@@ -1,6 +1,9 @@
 // Dead Night Event Guestbook Worker
 // Specific worker for the Dead Night 5/16/25 event
 
+// Import proxy router
+import { handleProxyFields } from './proxy-router.js';
+
 export default {
   async fetch(req, env, ctx) {
     // CORS headers for allowed origins
@@ -18,6 +21,13 @@ export default {
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type"
     };
+    
+    // Check if this is a request to the proxy endpoint
+    const url = new URL(req.url);
+    if (url.pathname === '/proxy-fields') {
+      console.log('Handling proxy-fields request');
+      return handleProxyFields(req, env, ctx);
+    }
     
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
