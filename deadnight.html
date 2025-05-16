@@ -103,6 +103,7 @@
 
     <h1>Dead Night</h1>
     <div class="event-date">May 16, 2025</div>
+    <div style="text-align: center; font-size: 0.7em; color: #666; margin-bottom: 15px;">v2.1</div>
 
     <form id="guestbook-form">
         <label for="name">Name:</label>
@@ -160,13 +161,14 @@
                 });
 
                 let result;
+                const responseText = await response.text();
+                
                 try {
                     // Try to parse JSON response
-                    result = await response.json();
+                    result = JSON.parse(responseText);
                 } catch (e) {
-                    // If not JSON, get text
-                    const text = await response.text();
-                    result = { message: text };
+                    // If not valid JSON, use text as is
+                    result = { message: responseText };
                 }
 
                 if (response.ok) {
