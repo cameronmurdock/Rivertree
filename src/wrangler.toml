@@ -1,0 +1,8 @@
+name = "new-guestbook-worker"
+main = "fixed-worker.js"
+compatibility_date = "2024-05-01"
+
+# Variables accessible in the Worker script via `env.VARIABLE_NAME`
+[vars]
+NOTION_VERSION = "2022-06-28"
+NOTION_DB = "1aa1503617b48089bd9edcbfa809ab61"
