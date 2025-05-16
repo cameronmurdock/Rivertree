@@ -158,25 +158,53 @@ export default {
       // We'll continue without the event relation if there's an error
     }
       
-    // Prepare Notion payload with the event relation if found
+    // Try multiple formats for Phone and Source to find what works with the Notion schema
+    // Also add debugging info in message to track what's happening
+    
+    // Add phone and source to message as fallback
+    let enhancedMessage = message.trim();
+    if (phone) {
+      enhancedMessage += `\n\n📱 Phone: ${phone}`;
+    }
+    enhancedMessage += `\n📋 Source: Guestbook`;
+    enhancedMessage += `\n🌙 Event: ${eventName}`;
+    enhancedMessage += `\n\nDebug info: Submission time ${new Date().toISOString()}`;
+    
+    console.log('Creating Notion payload with enhanced data');
+    
     notionPayload = {
       parent: { database_id: env.NOTION_DB },
       properties: {
         "Name": { title: [{ text: { content: name } }] }, 
         "Email": { email: email }, 
-        "Message": { rich_text: [{ text: { content: message } }] },
+        "Message": { rich_text: [{ text: { content: enhancedMessage } }] },
         "Membership Type": { multi_select: [{ name: "Guest" }] },
         "Guestbook Date": { date: { start: new Date().toISOString() } },
-        // Include the event name as rich text
+        
+        // Try different formats for Event
         "Event": { rich_text: [{ text: { content: eventName } }] },
-        // Add phone if provided (as rich text since Notion might not have a phone type)
+        
+        // Try phone as multiple formats to see which one works
         ...(phone ? { "Phone": { rich_text: [{ text: { content: phone } }] } } : {}),
-        // Add source information
-        "Source": { rich_text: [{ text: { content: source || "Guestbook" } }] },
+        ...(phone ? { "Phone Number": { rich_text: [{ text: { content: phone } }] } } : {}),
+        ...(phone ? { "Contact": { rich_text: [{ text: { content: phone } }] } } : {}),
+        
+        // Try source as multiple formats
+        "Source": { rich_text: [{ text: { content: "Guestbook" } }] },
+        "Source Type": { rich_text: [{ text: { content: "Guestbook" } }] },
+        "Lead Source": { rich_text: [{ text: { content: "Guestbook" } }] },
+        
+        // Also try select/multi_select formats
+        "Lead Type": { select: { name: "Guestbook" } },
+        "Event Source": { select: { name: "Guestbook" } },
+        "Contact Type": { multi_select: [{ name: "Guestbook" }] },
+        
         // Only add the relation if we found a valid event ID
         ...(eventId ? { "Events Attended": { relation: [{ id: eventId }] } } : {})
       }
     };
+    
+    console.log('Notion payload created with multiple field formats');
 
     // Call Notion API to create the guestbook entry
     try {
