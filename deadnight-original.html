@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dead Night Guestbook</title>
+    <style>
+        body { 
+            font-family: sans-serif; 
+            line-height: 1.6; 
+            padding: 20px; 
+            max-width: 500px; 
+            margin: auto; 
+            background-color: #111; 
+            color: #ddd;
+        }
+        form { 
+            background: #222; 
+            padding: 25px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3); 
+        }
+        h1 { 
+            text-align: center; 
+            color: #f93; 
+            margin-bottom: 5px;
+        }
+        .event-date {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #aaa;
+        }
+        label, input, textarea, select { 
+            display: block; 
+            width: 100%; 
+            margin-bottom: 15px; 
+            box-sizing: border-box; 
+        }
+        input[type="text"], input[type="email"], input[type="tel"], textarea, select {
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background-color: #333;
+            color: #fff;
+        }
+        textarea { 
+            height: 100px; 
+            resize: vertical; 
+        }
+        button { 
+            background-color: #f93; 
+            color: #111; 
+            padding: 12px 20px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.2s ease;
+            font-weight: bold;
+        }
+        button:hover { 
+            background-color: #f72; 
+        }
+        .status-message { 
+            margin-top: 15px; 
+            padding: 10px; 
+            border-radius: 4px; 
+            text-align: center; 
+            display: none; 
+        }
+        .status-message.success { 
+            background-color: #143; 
+            color: #5f5; 
+            border: 1px solid #2c4; 
+        }
+        .status-message.error { 
+            background-color: #521; 
+            color: #f55; 
+            border: 1px solid #c23; 
+        }
+        /* Override choices.js styles for dark theme */
+        .choices {
+            margin-bottom: 15px;
+        }
+        .choices__inner {
+            background-color: #333;
+            border: 1px solid #444;
+            color: #fff;
+            min-height: 41px;
+            padding: 7px 7.5px;
+        }
+        .choices__list--dropdown {
+            background-color: #333;
+            border: 1px solid #444;
+        }
+        .choices__list--dropdown .choices__item--selectable {
+            color: #fff;
+        }
+        .choices__list--dropdown .choices__item--selectable.is-highlighted {
+            background-color: #444;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Dead Night</h1>
+    <div class="event-date">May 16, 2025</div>
+
+    <form id="guestbook-form">
+        <label for="name">Name:</label>
+        <input id="name" name="name" placeholder="Your Name" required>
+
+        <label for="email">Email:</label>
+        <input id="email" name="email" type="email" placeholder="your.email@example.com" required>
+
+        <label for="phone">Phone (optional):</label>
+        <input id="phone" name="phone" type="tel" placeholder="(123) 456-7890">
+
+        <label for="message">Message:</label>
+        <textarea id="message" name="message" placeholder="Leave a message..." required></textarea>
+
+        <label for="event">Event:</label>
+        <select id="event" name="event" required>
+            <option value="">Loading events...</option>
+        </select>
+
+        <button type="submit">Sign Guestbook</button>
+        
+        <div id="status-message" class="status-message"></div>
+    </form>
+
+    <!-- Choices.js for searchable dropdown -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script>
+        const form = document.getElementById('guestbook-form');
+        const statusMessage = document.getElementById('status-message');
+        const eventSelect = document.getElementById('event');
+        
+        // Use the ORIGINAL Cloudflare Worker URL - this is crucial
+        const workerUrl = 'https://guestbook-worker.riversideguestbook.workers.dev';
+        
+        let choicesInstance = null;
+        
+        // Populate events dropdown - EXACTLY as in the original guestbook
+        async function loadEvents() {
+            try {
+                console.log('Fetching events from: ' + workerUrl + '/projects');
+                const res = await fetch(workerUrl + '/projects');
+                const data = await res.json();
+                
+                console.log('Received events data:', data);
+                
+                eventSelect.innerHTML = '';
+                if (data.projects && data.projects.length) {
+                    // First add a default
+                    eventSelect.innerHTML = '<option value="">Select an event...</option>';
+                    
+                    // Then add all projects
+                    data.projects.forEach(ev => {
+                        const option = document.createElement('option');
+                        option.value = ev.id;
+                        option.textContent = ev.name;
+                        
+                        // Check if this is the Dead Night event
+                        if (ev.name && ev.name.includes('Dead Night')) {
+                            console.log('Found Dead Night event:', ev.name);
+                            option.selected = true; // Pre-select it
+                        }
+                        
+                        eventSelect.appendChild(option);
+                    });
+                } else {
+                    eventSelect.innerHTML = '<option value="">No events found</option>';
+                }
+                
+                // Initialize or destroy/recreate Choices.js
+                if (choicesInstance) {
+                    choicesInstance.destroy();
+                }
+                
+                choicesInstance = new Choices(eventSelect, { 
+                    searchEnabled: true, 
+                    itemSelectText: '', 
+                    shouldSort: false 
+                });
+                
+                // Try to find and select Dead Night event
+                const deadNightEvent = data.projects.find(p => 
+                    p.name && p.name.includes('Dead Night'));
+                    
+                if (deadNightEvent) {
+                    console.log('Setting dropdown value to:', deadNightEvent.id);
+                    eventSelect.value = deadNightEvent.id;
+                    if (choicesInstance) {
+                        choicesInstance.setChoiceByValue(deadNightEvent.id);
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading events:', err);
+                eventSelect.innerHTML = '<option value="">Failed to load events</option>';
+            }
+        }
+        
+        // Load events immediately
+        loadEvents();
+
+        async function sendForm(e) {
+            e.preventDefault();
+            statusMessage.style.display = 'none';
+            statusMessage.className = 'status-message';
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Sending...';
+
+            // Extract form values - EXACTLY as in the original guestbook form
+            const formData = {
+                name: form.name.value,
+                email: form.email.value,
+                message: form.message.value + (form.phone.value ? "\n\n[Phone: " + form.phone.value + "]" : '') + "\n[Source: Guestbook]",
+                eventId: form.event.value
+            };
+            
+            console.log('Submitting form with data:', formData);
+
+            try {
+                console.log('Sending to worker URL:', workerUrl);
+                const response = await fetch(workerUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(formData)
+                });
+                
+                console.log('Response status:', response.status);
+
+                let result;
+                try {
+                    result = await response.json();
+                    console.log('Response data:', result);
+                } catch (err) {
+                    console.error('Error parsing response:', err);
+                    result = { message: 'Could not parse response' };
+                }
+
+                if (response.ok && result.ok) {
+                    statusMessage.textContent = "Thank you! Your message has been added to the Dead Night guestbook.";
+                    statusMessage.classList.add('success');
+                    form.reset();
+                    
+                    // Wait a bit and then reinitialize the dropdown 
+                    setTimeout(() => {
+                        loadEvents();
+                    }, 200);
+                } else {
+                    statusMessage.textContent = result.message || response.statusText || "An error occurred. Please try again later.";
+                    statusMessage.classList.add('error');
+                    console.error('Submission failed:', response.status, result);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                statusMessage.textContent = "A network error occurred. Please check your connection and try again.";
+                statusMessage.classList.add('error');
+            } finally {
+                statusMessage.style.display = 'block';
+                submitButton.disabled = false;
+                submitButton.textContent = 'Sign Guestbook';
+            }
+        }
+
+        form.addEventListener('submit', sendForm);
+    </script>
+
+</body>
+</html>
