@@ -260,12 +260,7 @@
             <label for="message">Message</label>
             <textarea id="message" name="message" placeholder="Share your thoughts..." required></textarea>
 
-            <!-- Hidden event selector that will be pre-populated and auto-selected -->
-            <div class="hidden-select">
-                <select id="event" name="event" required>
-                    <option value="">Loading events...</option>
-                </select>
-            </div>
+            <!-- No need for event selection with the dedicated Dead Night worker -->
 
             <button type="submit">Sign Guestbook</button>
             
@@ -280,51 +275,11 @@
     <script>
         const form = document.getElementById('guestbook-form');
         const statusMessage = document.getElementById('status-message');
-        const eventSelect = document.getElementById('event');
         
-        // Use the original working guestbook worker
-        const workerUrl = 'https://guestbook-worker.riversideguestbook.workers.dev';
+        // Use the dedicated Dead Night worker that now properly handles phone and source
+        const workerUrl = 'https://deadnight-worker.riversideguestbook.workers.dev';
         
-        // Load and pre-select the Dead Night event
-        async function loadAndSelectDeadNightEvent() {
-            try {
-                const res = await fetch(workerUrl + '/projects');
-                
-                if (!res.ok) {
-                    console.warn('Error fetching events:', res.status);
-                    return;
-                }
-                
-                const data = await res.json();
-                
-                if (data.projects && data.projects.length) {
-                    // First add a default option
-                    eventSelect.innerHTML = '<option value="">Select an event...</option>';
-                    
-                    // Then add all projects
-                    data.projects.forEach(ev => {
-                        const option = document.createElement('option');
-                        option.value = ev.id;
-                        option.textContent = ev.name;
-                        eventSelect.appendChild(option);
-                    });
-                    
-                    // Look for Dead Night event in the list
-                    const deadNightEvent = data.projects.find(p => 
-                        p.name && p.name.includes('Dead Night'));
-                    
-                    if (deadNightEvent) {
-                        console.log('Found and selected Dead Night event:', deadNightEvent.name);
-                        eventSelect.value = deadNightEvent.id;
-                    }
-                }
-            } catch (err) {
-                console.warn('Error loading events:', err);
-            }
-        }
-        
-        // Initialize right away
-        loadAndSelectDeadNightEvent();
+        console.log('Dead Night Guestbook - Final Version');
 
         async function sendForm(e) {
             e.preventDefault();
@@ -338,28 +293,13 @@
             const phone = form.phone.value.trim();
             let messageText = form.message.value;
             
-            // Format message with clear section breaks so they stand out in Notion
-            messageText = messageText.trim();
-            
-            // Add a separator line
-            messageText += '\n\n----------------------------------------';
-            
-            // Add phone if provided
-            if (phone) {
-                messageText += '\n📱 Phone: ' + phone;
-            }
-            
-            // Always add source
-            messageText += '\n📋 Source: Guestbook';
-            messageText += '\n🌙 Event: Dead Night 5/16/25';
-            
+            // The updated worker will handle these fields properly now
             const formData = {
                 name: form.name.value,
                 email: form.email.value,
                 message: messageText,
-                eventId: form.event.value,
-                // Add Source directly as a field - the worker may handle additional fields
-                source: 'Guestbook'
+                phone: phone,  // Send phone directly
+                source: 'Guestbook'  // Send source directly
             };
 
             try {
@@ -380,10 +320,6 @@
                     statusMessage.textContent = "Thank you! Your message has been added to the Dead Night guestbook.";
                     statusMessage.classList.add('success');
                     form.reset();
-                    // Re-select Dead Night event after form reset
-                    setTimeout(() => {
-                        eventSelect.value = formData.eventId;
-                    }, 100);
                 } else {
                     statusMessage.textContent = result.message || result.error || "Something went wrong. Please try again.";
                     statusMessage.classList.add('error');
