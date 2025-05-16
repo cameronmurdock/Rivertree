@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dead Night 5/16/25 - Guestbook</title>
+    <style>
+        body { 
+            font-family: 'Helvetica Neue', Arial, sans-serif; 
+            line-height: 1.6; 
+            padding: 20px; 
+            max-width: 600px; 
+            margin: auto; 
+            background-color: #000; 
+            color: #f1f1f1;
+        }
+        form { 
+            background: #111; 
+            padding: 30px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(255,255,255,0.1);
+            border: 1px solid #333;
+        }
+        h1 { 
+            text-align: center; 
+            color: #ff5555; 
+            font-size: 2.2em;
+            margin-bottom: 0.5em;
+        }
+        .event-date {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 2em;
+            font-size: 1.2em;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ccc;
+            font-weight: bold;
+        }
+        input, textarea { 
+            display: block; 
+            width: 100%; 
+            margin-bottom: 20px; 
+            box-sizing: border-box;
+            background: #222;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 12px;
+            border-radius: 4px;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #ff5555;
+            box-shadow: 0 0 0 2px rgba(255,85,85,0.2);
+        }
+        textarea { 
+            height: 120px; 
+            resize: vertical; 
+        }
+        button { 
+            background-color: #ff5555; 
+            color: white; 
+            padding: 14px 25px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s ease;
+            font-weight: bold;
+        }
+        button:hover { 
+            background-color: #ff3333; 
+        }
+        .status-message { 
+            margin-top: 15px; 
+            padding: 12px; 
+            border-radius: 4px; 
+            text-align: center; 
+            display: none;
+        }
+        .status-message.success { 
+            background-color: #224422; 
+            color: #88ff88; 
+            border: 1px solid #44aa44; 
+        }
+        .status-message.error { 
+            background-color: #662222; 
+            color: #ffaaaa; 
+            border: 1px solid #cc4444; 
+        }
+        footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Dead Night</h1>
+    <div class="event-date">May 16, 2025</div>
+
+    <form id="guestbook-form">
+        <label for="name">Name:</label>
+        <input id="name" name="name" placeholder="Your Name" required>
+
+        <label for="email">Email:</label>
+        <input id="email" name="email" type="email" placeholder="your.email@example.com" required>
+
+        <label for="message">Message:</label>
+        <textarea id="message" name="message" placeholder="Leave a message..." required></textarea>
+
+        <!-- Hidden input for event ID -->
+        <input type="hidden" id="event" name="event" value="dead-night-051625">
+
+        <button type="submit">Sign Guestbook</button>
+        
+        <div id="status-message" class="status-message"></div>
+    </form>
+
+    <footer>
+        &copy; 2025 Rivertree
+    </footer>
+
+    <script>
+        const form = document.getElementById('guestbook-form');
+        const statusMessage = document.getElementById('status-message');
+        
+        // Cloudflare Worker URL
+        const workerUrl = 'https://notion-form-worker-production.riversideguestbook.workers.dev';
+        // Event details
+        const eventName = "Dead Night 5/16/25";
+
+        async function sendForm(e) {
+            e.preventDefault();
+            statusMessage.style.display = 'none'; // Hide previous messages
+            statusMessage.className = 'status-message'; // Reset class
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Sending...';
+
+            const formData = {
+                name: form.name.value,
+                email: form.email.value,
+                message: form.message.value,
+                event: eventName  // Send the event name to the worker
+            };
+
+            try {
+                const response = await fetch(workerUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(formData)
+                });
+
+                let result;
+                try {
+                    // Try to parse JSON response
+                    result = await response.json();
+                } catch (e) {
+                    // If not JSON, get text
+                    const text = await response.text();
+                    result = { message: text };
+                }
+
+                if (response.ok) {
+                    statusMessage.textContent = "Thanks for signing the Dead Night guestbook!";
+                    statusMessage.classList.add('success');
+                    form.reset();
+                } else {
+                    // Display error message from worker (if available) or a generic one
+                    statusMessage.textContent = result.message || response.statusText || 
+                        "An error occurred. Please try again later.";
+                    statusMessage.classList.add('error');
+                    console.error('Submission failed:', response.status, result);
+                }
+            } catch (error) {
+                statusMessage.textContent = "A network error occurred. Please check your connection and try again.";
+                statusMessage.classList.add('error');
+                console.error('Fetch error:', error);
+            } finally {
+                 statusMessage.style.display = 'block';
+                 submitButton.disabled = false;
+                 submitButton.textContent = 'Sign Guestbook';
+            }
+        }
+
+        form.addEventListener('submit', sendForm);
+    </script>
+
+</body>
+</html>

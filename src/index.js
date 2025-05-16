@@ -133,6 +133,7 @@ export default {
       try {
         body = await req.json();
       } catch (e) {
+        addLog({ type: 'error', endpoint: '/shift-complete', message: 'Invalid JSON in request body', error: e.message, requestId });
         return new Response(JSON.stringify({ error: 'Invalid JSON', details: e.message }), {
           status: 400,
           headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
@@ -140,18 +141,25 @@ export default {
       }
       const { updates } = body; // [{taskId, completed}]
       if (!Array.isArray(updates) || !updates.length) {
+        addLog({ type: 'error', endpoint: '/shift-complete', message: 'Missing or invalid updates array', requestId });
         return new Response(JSON.stringify({ error: 'Missing or invalid updates array' }), {
           status: 400,
           headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
         });
       }
-      // For each checked/completed task, create a Completed Task page
+
       const completedTasksDbId = '1aa1503617b480e99f58f1de62991454';
       let results = [];
+
       for (const { taskId, completed } of updates) {
+        let operationSuccess = true;
+        let operationError = null;
+        let createdPageId = null;
+        let debugInfo = {};
+
         try {
-          // Always update the original task's checkbox
-          await fetch(`https://api.notion.com/v1/pages/${taskId}`, {
+          // Step 1: Update the original task's checkbox
+          const patchOriginalTaskRes = await fetch(`https://api.notion.com/v1/pages/${taskId}`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Bearer ${env.NOTION_SECRET}`,
@@ -165,7 +173,17 @@ export default {
               }
             })
           });
-          // Only create Completed Task if marked complete
+          debugInfo.patchOriginalTaskStatus = patchOriginalTaskRes.status;
+          if (!patchOriginalTaskRes.ok) {
+            const errorData = await patchOriginalTaskRes.json();
+            operationSuccess = false;
+            operationError = { step: 'patchOriginalTask', status: patchOriginalTaskRes.status, error: errorData };
+            addLog({ type: 'error', endpoint: '/shift-complete', message: `Failed to patch original task ${taskId}`, details: operationError, requestId });
+            // Decide if we should continue to create Completed Task if this fails, or just record error.
+            // For now, we'll let it try to proceed if 'completed' is true, but log the failure.
+          }
+
+          // Step 2: If completed, create a "Completed Task" page
           if (completed) {
             // Fetch the original task's properties
             const taskRes = await fetch(`https://api.notion.com/v1/pages/${taskId}`, {
@@ -176,49 +194,89 @@ export default {
                 'Accept': 'application/json'
               }
             });
-            const taskData = await taskRes.json();
-            // Prepare properties for Completed Task
-            const props = taskData.properties || {};
-            // Compose new Completed Task properties (adjust as needed for your schema)
-            const newProps = {
-              'Name': props.Name,
-              'Points': props.Points,
-              'Person': props.Person,
-              'Shift': props.Shift,
-              'Completed By': props.Person // or whoever is completing, adjust as needed
-            };
-            // Create Completed Task page
-            const createPayload = {
-              parent: { database_id: completedTasksDbId },
-              properties: newProps
-            };
-            const createRes = await fetch('https://api.notion.com/v1/pages', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${env.NOTION_SECRET}`,
-                'Notion-Version': env.NOTION_VERSION || '2022-06-28',
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify(createPayload)
-            });
-            const createData = await createRes.json();
-            results.push({
-              taskId,
-              completed: true,
-              createdId: createData.id || null,
-              success: createRes.ok,
-              error: createRes.ok ? null : createData,
-              sentProperties: newProps,
-              sentPayload: createPayload
-            });
+            debugInfo.getOriginalTaskStatus = taskRes.status;
+            if (!taskRes.ok) {
+              const errorData = await taskRes.json();
+              operationSuccess = false; // Mark as failure if we can't get original task details
+              operationError = operationError || { step: 'getOriginalTask', status: taskRes.status, error: errorData };
+              addLog({ type: 'error', endpoint: '/shift-complete', message: `Failed to get original task ${taskId} details`, details: operationError, requestId });
+            } else {
+              const taskData = await taskRes.json();
+              debugInfo.originalTaskProperties = taskData.properties;
+
+              const props = taskData.properties || {};
+              const newProps = {
+                'Name': props.Name, // Ensure this property exists and is of the correct type
+                'Points': props.Points, // Ensure this property exists and is a number type if required
+                'Person': props.Person, // Ensure this property exists
+                'Shift': props.Shift, // Ensure this property exists and is a relation
+                // 'Completed By': props.Person // Example: Or determine logged-in user if possible
+              };
+              // If 'Person' property exists and has a valid structure for 'people' type
+              if (props.Person && props.Person.people && props.Person.people.length > 0) {
+                newProps['Completed By'] = { people: props.Person.people };
+              } else if (props.Person && props.Person.rich_text && props.Person.rich_text.length > 0) {
+                 // Fallback if Person is rich_text and Completed By is also rich_text
+                 // Or handle according to actual 'Completed By' type in Notion
+                 newProps['Completed By'] = { rich_text: [{ text: { content: props.Person.rich_text[0].plain_text }}] };
+              }
+
+              const createPayload = {
+                parent: { database_id: completedTasksDbId },
+                properties: newProps
+              };
+              debugInfo.createCompletedTaskPayload = createPayload;
+
+              const createRes = await fetch('https://api.notion.com/v1/pages', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${env.NOTION_SECRET}`,
+                  'Notion-Version': env.NOTION_VERSION || '2022-06-28',
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+                body: JSON.stringify(createPayload)
+              });
+              debugInfo.createCompletedTaskStatus = createRes.status;
+              if (!createRes.ok) {
+                const errorData = await createRes.json();
+                operationSuccess = false;
+                operationError = operationError || { step: 'createCompletedTask', status: createRes.status, error: errorData, payload: createPayload };
+                addLog({ type: 'error', endpoint: '/shift-complete', message: `Failed to create completed task for ${taskId}`, details: operationError, requestId });
+              } else {
+                const createData = await createRes.json();
+                createdPageId = createData.id || null;
+                // if patchOriginalTask failed but this succeeded, operationSuccess might still be false from earlier
+                // ensure it's true if this specific step (create) was the main goal and it worked.
+                if (operationError && operationError.step !== 'createCompletedTask') operationSuccess = true; // Override if only earlier non-critical step failed
+                 else if (!operationError) operationSuccess = true;
+              }
+            }
           } else {
-            results.push({ taskId, completed: false, success: true });
+            // Task is being unchecked - if patchOriginalTask failed, operationSuccess is already false
+             if (operationError && operationError.step === 'patchOriginalTask') {
+                // success remains false
+             } else {
+                operationSuccess = true; // Successfully marked as incomplete (or patch was ok)
+             }
           }
+
+          results.push({
+            taskId,
+            completed,
+            success: operationSuccess,
+            createdId: createdPageId,
+            error: operationError,
+            debug: debugInfo
+          });
+
         } catch (err) {
-          results.push({ taskId, success: false, error: err.message });
+          addLog({ type: 'error', endpoint: '/shift-complete', message: `General error processing task ${taskId}`, error: err.message, stack: err.stack, requestId });
+          results.push({ taskId, completed, success: false, error: { step: 'generalCatch', message: err.message }, debug: debugInfo });
         }
       }
+
+      addLog({ type: 'response', endpoint: '/shift-complete', results, requestId });
       return new Response(JSON.stringify({ results }), {
         status: 200,
         headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
@@ -739,4 +797,3 @@ export default {
     return new Response('Method not implemented', { status: 501 });
   }
 };
-
