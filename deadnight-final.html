@@ -335,11 +335,18 @@
             submitButton.textContent = 'Sending...';
 
             // Get the form data
+            const phone = form.phone.value.trim();
+            let messageText = form.message.value;
+            
+            // If phone is provided, include it at the end of the message
+            if (phone) {
+                messageText += '\n\nPhone: ' + phone;
+            }
+            
             const formData = {
                 name: form.name.value,
                 email: form.email.value,
-                phone: form.phone.value, // Add phone field
-                message: form.message.value,
+                message: messageText,
                 eventId: form.event.value
             };
 
