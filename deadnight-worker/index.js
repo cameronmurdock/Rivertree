@@ -70,7 +70,7 @@ export default {
     }
 
     // Validate required fields and extract optional fields
-    const { name, email, message, phone, source } = body;
+    const { name, email, message, phone, source, contactPreference } = body;
     const missingFields = [];
     if (!name?.trim()) missingFields.push('name');
     if (!email?.trim()) missingFields.push('email');
@@ -79,6 +79,7 @@ export default {
     // Log receipt of optional fields
     if (phone) console.log('Phone received:', phone);
     if (source) console.log('Source received:', source);
+    if (contactPreference) console.log('Contact Preference received:', contactPreference);
     
     if (missingFields.length > 0) {
       return new Response(JSON.stringify({
@@ -177,6 +178,9 @@ export default {
         
         // Source field - CRITICAL fix #2 
         "Source": { select: { name: "Guestbook" } },
+        
+        // Contact Preference field - as requested
+        "Contact Preference": { select: { name: contactPreference || "Do Not Contact" } },
         
         // Standard fields
         "Membership Type": { multi_select: [{ name: "Guest" }] },
