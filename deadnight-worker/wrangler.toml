@@ -1,0 +1,11 @@
+name = "deadnight-worker" 
+main = "index.js"
+compatibility_date = "2024-05-01"
+
+# Variables accessible in the Worker script via `env.VARIABLE_NAME`
+[vars]
+NOTION_VERSION = "2022-06-28"
+
+# Environment-specific configuration
+[env.production]
+# Nothing special needed here, but you can add custom settings if needed
