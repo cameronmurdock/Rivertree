@@ -103,7 +103,7 @@
 
     <h1>Dead Night</h1>
     <div class="event-date">May 16, 2025</div>
-    <div style="text-align: center; font-size: 0.7em; color: #666; margin-bottom: 15px;">v2.1</div>
+    <div style="text-align: center; font-size: 0.7em; color: #666; margin-bottom: 15px;">v2.2</div>
 
     <form id="guestbook-form">
         <label for="name">Name:</label>
@@ -148,9 +148,9 @@
                 name: form.name.value,
                 email: form.email.value,
                 message: form.message.value,
-                // Include proper event information in the format expected by the main worker
-                // This will ensure the submission is linked to the Dead Night event
-                eventId: "1ba1503617b480c789dc8cff4a2cc29a" // Hard-coding Dead Night event ID
+                // Format identical to the main guestbook form
+                // This is the Dead Night event ID in Notion
+                eventId: "e8fd08ac-3ec4-4272-b4d8-03ee47f9b578"
             };
 
             try {
