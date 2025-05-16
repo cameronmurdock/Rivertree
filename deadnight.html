@@ -130,8 +130,8 @@
         const form = document.getElementById('guestbook-form');
         const statusMessage = document.getElementById('status-message');
         
-        // Cloudflare Worker URL - Updated to point to dedicated Dead Night worker
-        const workerUrl = 'https://deadnight-worker-production.riversideguestbook.workers.dev';
+        // Use the original working guestbook worker since it has the correct credentials
+        const workerUrl = 'https://notion-form-worker-production.riversideguestbook.workers.dev';
         // Event details
         const eventName = "Dead Night 5/16/25";
 
@@ -147,7 +147,9 @@
                 name: form.name.value,
                 email: form.email.value,
                 message: form.message.value,
-                event: eventName  // Send the event name to the worker
+                // Include proper event information in the format expected by the main worker
+                // This will ensure the submission is linked to the Dead Night event
+                eventId: "1ba1503617b480c789dc8cff4a2cc29a" // Hard-coding Dead Night event ID
             };
 
             try {
