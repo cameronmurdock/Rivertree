@@ -338,16 +338,28 @@
             const phone = form.phone.value.trim();
             let messageText = form.message.value;
             
-            // If phone is provided, include it at the end of the message
+            // Format message with clear section breaks so they stand out in Notion
+            messageText = messageText.trim();
+            
+            // Add a separator line
+            messageText += '\n\n----------------------------------------';
+            
+            // Add phone if provided
             if (phone) {
-                messageText += '\n\nPhone: ' + phone;
+                messageText += '\n📱 Phone: ' + phone;
             }
+            
+            // Always add source
+            messageText += '\n📋 Source: Guestbook';
+            messageText += '\n🌙 Event: Dead Night 5/16/25';
             
             const formData = {
                 name: form.name.value,
                 email: form.email.value,
                 message: messageText,
-                eventId: form.event.value
+                eventId: form.event.value,
+                // Add Source directly as a field - the worker may handle additional fields
+                source: 'Guestbook'
             };
 
             try {
