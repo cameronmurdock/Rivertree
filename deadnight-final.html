@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dead Night Guestbook</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #ff9933;
+            --primary-hover: #ff7722;
+            --background: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --text: #eeeeee;
+            --muted-text: #aaaaaa;
+            --border: #333333;
+            --success-bg: #143322;
+            --success-text: #5fff77;
+            --error-bg: #521111;
+            --error-text: #ff5555;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: 'Roboto', sans-serif;
+            line-height: 1.6;
+            padding: 30px 20px;
+            max-width: 550px;
+            margin: 0 auto;
+            background-color: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Background effect */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 80% 20%, rgba(255, 153, 51, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 20% 80%, rgba(255, 153, 51, 0.03) 0%, transparent 40%);
+            z-index: 0;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        h1 { 
+            font-family: 'Playfair Display', serif;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            font-size: 2.8rem;
+            letter-spacing: 1px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        h1::after {
+            content: "";
+            position: absolute;
+            width: 40%;
+            height: 2px;
+            background-color: var(--primary-color);
+            bottom: -6px;
+            left: 30%;
+        }
+        
+        .event-date {
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+            color: var(--muted-text);
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+        
+        form { 
+            background: var(--card-bg);
+            padding: 35px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        form:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        label { 
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--muted-text);
+            letter-spacing: 0.5px;
+        }
+        
+        input, textarea { 
+            display: block; 
+            width: 100%; 
+            margin-bottom: 25px; 
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background-color: rgba(30, 30, 30, 0.6);
+            color: var(--text);
+            font-family: 'Roboto', sans-serif;
+            font-size: 16px;
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+        }
+        
+        input:focus, textarea:focus {
+            border-color: var(--primary-color);
+            background-color: rgba(40, 40, 40, 0.8);
+            outline: none;
+        }
+        
+        textarea { 
+            height: 120px; 
+            resize: vertical; 
+        }
+        
+        button { 
+            background-color: var(--primary-color);
+            color: #111111;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            width: 100%;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.4s ease;
+        }
+        
+        button:hover { 
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 153, 51, 0.2);
+        }
+        
+        button:hover::before {
+            left: 100%;
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .status-message { 
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center; 
+            display: none;
+            font-weight: 500;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .status-message.success { 
+            background-color: var(--success-bg);
+            color: var(--success-text);
+            border: 1px solid rgba(95, 255, 85, 0.3);
+        }
+        
+        .status-message.error { 
+            background-color: var(--error-bg);
+            color: var(--error-text);
+            border: 1px solid rgba(255, 85, 85, 0.3);
+        }
+        
+        .hidden-select {
+            position: absolute;
+            left: -9999px;
+            height: 0;
+            overflow: hidden;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: var(--muted-text);
+            font-size: 0.8rem;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            body {
+                padding: 20px 15px;
+            }
+            
+            form {
+                padding: 25px 20px;
+            }
+            
+            h1 {
+                font-size: 2.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Dead Night</h1>
+            <div class="event-date">May 16, 2025</div>
+        </div>
+
+        <form id="guestbook-form">
+            <label for="name">Name</label>
+            <input id="name" name="name" placeholder="Your name" required autocomplete="name">
+
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="your.email@example.com" required autocomplete="email">
+
+            <label for="message">Message</label>
+            <textarea id="message" name="message" placeholder="Share your thoughts..." required></textarea>
+
+            <!-- Hidden event selector that will be pre-populated and auto-selected -->
+            <div class="hidden-select">
+                <select id="event" name="event" required>
+                    <option value="">Loading events...</option>
+                </select>
+            </div>
+
+            <button type="submit">Sign Guestbook</button>
+            
+            <div id="status-message" class="status-message"></div>
+        </form>
+        
+        <div class="footer">
+            Riverside &copy; 2025
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('guestbook-form');
+        const statusMessage = document.getElementById('status-message');
+        const eventSelect = document.getElementById('event');
+        
+        // Use the original working guestbook worker
+        const workerUrl = 'https://guestbook-worker.riversideguestbook.workers.dev';
+        
+        // Load and pre-select the Dead Night event
+        async function loadAndSelectDeadNightEvent() {
+            try {
+                const res = await fetch(workerUrl + '/projects');
+                
+                if (!res.ok) {
+                    console.warn('Error fetching events:', res.status);
+                    return;
+                }
+                
+                const data = await res.json();
+                
+                if (data.projects && data.projects.length) {
+                    // First add a default option
+                    eventSelect.innerHTML = '<option value="">Select an event...</option>';
+                    
+                    // Then add all projects
+                    data.projects.forEach(ev => {
+                        const option = document.createElement('option');
+                        option.value = ev.id;
+                        option.textContent = ev.name;
+                        eventSelect.appendChild(option);
+                    });
+                    
+                    // Look for Dead Night event in the list
+                    const deadNightEvent = data.projects.find(p => 
+                        p.name && p.name.includes('Dead Night'));
+                    
+                    if (deadNightEvent) {
+                        console.log('Found and selected Dead Night event:', deadNightEvent.name);
+                        eventSelect.value = deadNightEvent.id;
+                    }
+                }
+            } catch (err) {
+                console.warn('Error loading events:', err);
+            }
+        }
+        
+        // Initialize right away
+        loadAndSelectDeadNightEvent();
+
+        async function sendForm(e) {
+            e.preventDefault();
+            statusMessage.style.display = 'none';
+            statusMessage.className = 'status-message'; 
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Sending...';
+
+            // Get the form data
+            const formData = {
+                name: form.name.value,
+                email: form.email.value,
+                message: form.message.value,
+                eventId: form.event.value
+            };
+
+            try {
+                const response = await fetch(workerUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(formData)
+                });
+
+                let result;
+                try {
+                    result = await response.json();
+                } catch (err) {
+                    result = { message: 'Could not parse server response' };
+                }
+
+                if (response.ok && result.ok) {
+                    statusMessage.textContent = "Thank you! Your message has been added to the Dead Night guestbook.";
+                    statusMessage.classList.add('success');
+                    form.reset();
+                    // Re-select Dead Night event after form reset
+                    setTimeout(() => {
+                        eventSelect.value = formData.eventId;
+                    }, 100);
+                } else {
+                    statusMessage.textContent = result.message || result.error || "Something went wrong. Please try again.";
+                    statusMessage.classList.add('error');
+                }
+            } catch (error) {
+                statusMessage.textContent = "Connection error. Please check your network and try again.";
+                statusMessage.classList.add('error');
+            } finally {
+                statusMessage.style.display = 'block';
+                submitButton.disabled = false;
+                submitButton.textContent = 'Sign Guestbook';
+            }
+        }
+
+        form.addEventListener('submit', sendForm);
+    </script>
+</body>
+</html>
