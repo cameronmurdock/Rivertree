@@ -69,12 +69,16 @@ export default {
       });
     }
 
-    // Validate required fields
-    const { name, email, message } = body;
+    // Validate required fields and extract optional fields
+    const { name, email, message, phone, source } = body;
     const missingFields = [];
     if (!name?.trim()) missingFields.push('name');
     if (!email?.trim()) missingFields.push('email');
     if (!message?.trim()) missingFields.push('message');
+    
+    // Log receipt of optional fields
+    if (phone) console.log('Phone received:', phone);
+    if (source) console.log('Source received:', source);
     
     if (missingFields.length > 0) {
       return new Response(JSON.stringify({
@@ -106,10 +110,56 @@ export default {
     
     // Event info hardcoded for Dead Night
     const eventName = "Dead Night 5/16/25";
-    const eventId = "dead-night-051625";
     
-    // Prepare Notion payload
-    const notionPayload = {
+    // Variables for the Notion request
+    let notionPayload;
+    let eventId = null;
+    
+    try {
+      // First, query the projects database to find the Dead Night event ID
+      const projectsDbId = '1aa1503617b48028b0acce3076a49257';
+      const findEventRes = await fetch(`https://api.notion.com/v1/databases/${projectsDbId}/query`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${env.NOTION_SECRET}`,
+          'Notion-Version': env.NOTION_VERSION || '2022-06-28',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          page_size: 100,
+          filter: {
+            property: 'Name',
+            title: {
+              contains: "Dead Night"
+            }
+          }
+        })
+      });
+
+      if (!findEventRes.ok) {
+        throw new Error(`Failed to query projects database: ${findEventRes.status}`);
+      }
+      
+      const eventsData = await findEventRes.json();
+      
+      // Find the Dead Night event
+      const deadNightEvent = eventsData.results.find(page => 
+        page.properties.Name?.title?.[0]?.plain_text.includes("Dead Night"));
+      
+      if (deadNightEvent) {
+        eventId = deadNightEvent.id;
+        console.log(`Found Dead Night event with ID: ${eventId}`);
+      } else {
+        console.warn("Dead Night event not found in projects database");
+      }
+    } catch (error) {
+      console.error("Error finding Dead Night event:", error);
+      // We'll continue without the event relation if there's an error
+    }
+      
+    // Prepare Notion payload with the event relation if found
+    notionPayload = {
       parent: { database_id: env.NOTION_DB },
       properties: {
         "Name": { title: [{ text: { content: name } }] }, 
@@ -117,11 +167,18 @@ export default {
         "Message": { rich_text: [{ text: { content: message } }] },
         "Membership Type": { multi_select: [{ name: "Guest" }] },
         "Guestbook Date": { date: { start: new Date().toISOString() } },
-        "Event": { rich_text: [{ text: { content: eventName } }] }
+        // Include the event name as rich text
+        "Event": { rich_text: [{ text: { content: eventName } }] },
+        // Add phone if provided (as rich text since Notion might not have a phone type)
+        ...(phone ? { "Phone": { rich_text: [{ text: { content: phone } }] } } : {}),
+        // Add source information
+        "Source": { rich_text: [{ text: { content: source || "Guestbook" } }] },
+        // Only add the relation if we found a valid event ID
+        ...(eventId ? { "Events Attended": { relation: [{ id: eventId }] } } : {})
       }
     };
 
-    // Call Notion API
+    // Call Notion API to create the guestbook entry
     try {
       const notionRes = await fetch("https://api.notion.com/v1/pages", {
         method: "POST",
