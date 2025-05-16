@@ -103,7 +103,7 @@
 
     <h1>Dead Night</h1>
     <div class="event-date">May 16, 2025</div>
-    <div style="text-align: center; font-size: 0.7em; color: #666; margin-bottom: 15px;">v2.2</div>
+    <div style="text-align: center; font-size: 0.7em; color: #666; margin-bottom: 15px;">v2.3</div>
 
     <form id="guestbook-form">
         <label for="name">Name:</label>
@@ -135,6 +135,51 @@
         const workerUrl = 'https://notion-form-worker-production.riversideguestbook.workers.dev';
         // Event details
         const eventName = "Dead Night 5/16/25";
+        
+        // Try to fetch the correct Dead Night event ID first
+        let deadNightEventId = null;
+        
+        // Fetch events from the projects endpoint
+        async function findDeadNightEventId() {
+            try {
+                console.log('Fetching events to find Dead Night event ID...');
+                const response = await fetch(workerUrl + '/projects');
+                
+                if (!response.ok) {
+                    console.warn('Failed to fetch events, will use fallback ID');
+                    return null;
+                }
+                
+                const data = await response.json();
+                
+                if (data.projects && data.projects.length) {
+                    // Look for the Dead Night event
+                    const deadNightEvent = data.projects.find(p => 
+                        p.name && p.name.includes('Dead Night'));
+                    
+                    if (deadNightEvent) {
+                        console.log('Found Dead Night event:', deadNightEvent);
+                        return deadNightEvent.id;
+                    } else {
+                        console.warn('Dead Night event not found in projects list');
+                        return null;
+                    }
+                }
+            } catch (err) {
+                console.warn('Error fetching events:', err);
+                return null;
+            }
+        }
+        
+        // Fetch the event ID immediately
+        findDeadNightEventId().then(id => {
+            if (id) {
+                deadNightEventId = id;
+                console.log('Using Dead Night event ID:', deadNightEventId);
+            } else {
+                console.log('Using fallback event ID mechanism');
+            }
+        });
 
         async function sendForm(e) {
             e.preventDefault();
@@ -144,14 +189,23 @@
             submitButton.disabled = true;
             submitButton.textContent = 'Sending...';
 
+            // Collect form data
             const formData = {
                 name: form.name.value,
                 email: form.email.value,
-                message: form.message.value,
-                // Format identical to the main guestbook form
-                // This is the Dead Night event ID in Notion
-                eventId: "e8fd08ac-3ec4-4272-b4d8-03ee47f9b578"
+                message: form.message.value
             };
+            
+            // Use the dynamically fetched event ID if available
+            if (deadNightEventId) {
+                console.log('Using dynamically fetched event ID:', deadNightEventId);
+                formData.eventId = deadNightEventId;
+            } else {
+                // Add debug information to the message to help troubleshoot
+                formData.message = formData.message + '\n\n[Event: Dead Night 5/16/25]';
+                // Try with the hardcoded IDs as fallback
+                formData.eventId = "e8fd08ac-3ec4-4272-b4d8-03ee47f9b578";
+            }
 
             try {
                 const response = await fetch(workerUrl, {
