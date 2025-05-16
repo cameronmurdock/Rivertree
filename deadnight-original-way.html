@@ -185,12 +185,13 @@
                     eventSelect.innerHTML = '<option value="">Select an event...</option>' +
                         data.projects.map(ev => `<option value="${ev.id}">${ev.name}</option>`).join('');
                     
-                    // Find and select Dead Night event
+                    // Find and select Dead Night 5/16/25 event specifically
                     setTimeout(() => {
                         const options = eventSelect.querySelectorAll('option');
                         for (let option of options) {
-                            if (option.textContent.includes('Dead Night')) {
+                            if (option.textContent === 'Dead Night 5/16/25' || option.textContent.includes('Dead Night 5/16/25')) {
                                 option.selected = true;
+                                console.log('Auto-selected Dead Night 5/16/25');
                                 if (window.Choices) {
                                     const choices = document.querySelector('.choices');
                                     if (choices) {
