@@ -106,13 +106,14 @@
 
     <form id="guestbook-form">
         <label for="name">Name:</label>
-        <input id="name" name="name" placeholder="Your Name" required>
+        <input id="name" name="name" placeholder="Your Name" required autocomplete="name">
 
         <label for="email">Email:</label>
-        <input id="email" name="email" type="email" placeholder="your.email@example.com" required>
+        <input id="email" name="email" type="email" placeholder="your.email@example.com" required autocomplete="email">
 
         <label for="phone">Phone (optional):</label>
-        <input id="phone" name="phone" type="tel" placeholder="(123) 456-7890">
+        <input id="phone" name="phone" type="tel" placeholder="(123) 456-7890" autocomplete="tel" pattern="[\d\s\(\)\+\-\.]*">
+        <small style="color: #999; margin-top: -10px; display: block;">Format: (123) 456-7890 or any standard phone format</small>
         
         <label for="contactPreference">Contact Preference:</label>
         <select id="contactPreference" name="contactPreference" required>
@@ -148,13 +149,18 @@
             submitButton.textContent = 'Sending...';
 
             try {
-                // Keep phone number as-is, no special formatting needed
+                // Sanitize and format inputs properly
+                // For phone, use only digits in the raw value but leave formatting for display
+                const rawPhone = form.phone.value.trim();
+                const phoneDigits = rawPhone ? rawPhone.replace(/\D/g, '') : '';
+                
                 const formData = {
-                    name: form.name.value,
-                    email: form.email.value,
-                    phone: form.phone.value,
+                    name: form.name.value.trim(),
+                    email: form.email.value.trim(),
+                    // Send the phone number with the format that our worker expects
+                    phone: phoneDigits,
                     contactPreference: form.contactPreference.value,
-                    message: form.message.value,
+                    message: form.message.value.trim(),
                     source: "Guestbook"
                 };
                 
@@ -181,8 +187,28 @@
                     statusMessage.textContent = "Thank you! Your message has been added to the Dead Night guestbook.";
                     statusMessage.classList.add('success');
                     form.reset();
+                    
+                    // Scroll to the status message
+                    statusMessage.scrollIntoView({behavior: 'smooth'});
                 } else {
-                    statusMessage.textContent = result.message || result.error || response.statusText || "Something went wrong. Please try again.";
+                    // Provide more specific error messages based on common issues
+                    let errorMessage = "Something went wrong. Please try again.";
+                    
+                    if (result.error && result.error.includes("validation_error")) {
+                        if (result.error.includes("Phone")) {
+                            errorMessage = "There was an issue with the phone number format. Please try a different format or leave it blank.";
+                        } else if (result.error.includes("Email")) {
+                            errorMessage = "Please check your email address format.";
+                        } else {
+                            errorMessage = "One or more fields have validation errors. Please check your inputs.";
+                        }
+                    } else if (response.status === 502 || response.status === 503) {
+                        errorMessage = "The service is temporarily unavailable. Please try again in a moment.";
+                    } else if (response.status === 401 || response.status === 403) {
+                        errorMessage = "Authentication error. Please notify the site administrator.";
+                    }
+                    
+                    statusMessage.textContent = result.message || result.error || errorMessage;
                     statusMessage.classList.add('error');
                     console.error('Submission failed:', response.status, result);
                 }
