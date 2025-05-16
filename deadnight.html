@@ -103,7 +103,7 @@
 
     <h1>Dead Night</h1>
     <div class="event-date">May 16, 2025</div>
-    <div style="text-align: center; font-size: 0.7em; color: #666; margin-bottom: 15px;">v2.4</div>
+    <div style="text-align: center; font-size: 0.7em; color: #666; margin-bottom: 15px;">v2.5</div>
 
     <form id="guestbook-form">
         <label for="name">Name:</label>
@@ -136,8 +136,8 @@
         // Event details
         const eventName = "Dead Night 5/16/25";
         
-        // Simplifying approach - focus on form submission with the right data structure
-        console.log('Dead Night guestbook v2.4 - Simplified approach');
+        // Dual approach - provide both regular fields and direct payload
+        console.log('Dead Night guestbook v2.5 - Dual field approach');
 
         async function sendForm(e) {
             e.preventDefault();
@@ -147,28 +147,25 @@
             submitButton.disabled = true;
             submitButton.textContent = 'Sending...';
 
-            // DIRECT APPROACH: Create the exact Notion payload structure ourselves
-            // This bypasses any processing the worker might do and sends the exact format Notion expects
+            // DUAL APPROACH: Include both regular fields and direct Notion payload
+            const name = form.name.value;
+            const email = form.email.value;
+            const message = form.message.value;
+            
             const formData = {
-                // Direct mode flag tells our worker to pass this through directly to Notion
-                directNotion: true,
+                // Regular fields required by the worker validation
+                name: name,
+                email: email,
+                message: message,
                 
-                // The actual Notion payload
-                notionPayload: {
-                    parent: { database_id: "1aa1503617b48089bd9edcbfa809ab61" },
-                    properties: {
-                        // These match your Notion database columns exactly
-                        "Name": { title: [{ text: { content: form.name.value } }] },
-                        "Email": { email: form.email.value },
-                        "Message": { rich_text: [{ text: { content: form.message.value } }] },
-                        "Membership Type": { multi_select: [{ name: "Guest" }] },
-                        "Guestbook Date": { date: { start: new Date().toISOString() } },
-                        "Event": { rich_text: [{ text: { content: "Dead Night 5/16/25" } }] }
-                    }
-                }
+                // Hard-coded eventId for Dead Night
+                eventId: "c7e0de16-ce64-4a15-8d6c-3f6e5dbde1ce",
+                
+                // Include direct event information in the message
+                eventName: "Dead Night 5/16/25"
             };
             
-            console.log('Sending direct Notion payload format, bypassing worker processing');
+            console.log('Sending standard form data with Dead Night event information');
 
             try {
                 const response = await fetch(workerUrl, {
