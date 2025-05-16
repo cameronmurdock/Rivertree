@@ -625,6 +625,11 @@ export default {
       return response;
     }
     
+    // Extract additional fields from the request body
+    const phone = body.phone || null;
+    const contactPreference = body.contactPreference || "Do Not Contact";
+    const source = body.source || "Guestbook";
+    
     // --- Prepare Notion Payload --- 
     // Ensure these property names match your Notion database EXACTLY (case-sensitive)
     const notionPayload = {
@@ -640,6 +645,12 @@ export default {
         "Membership Type": { multi_select: [{ name: "Guest" }] },
         // Optional: Add a 'Timestamp' property (Type: Date) in Notion 
         "Guestbook Date": { date: { start: new Date().toISOString() } },
+        // Add Phone field with proper phone type
+        "Phone": { phone: phone },
+        // Add Contact Preference field with proper select type
+        "Contact Preference": { select: { name: contactPreference } },
+        // Add Source field with proper select type
+        "Source": { select: { name: source } },
         // --- New: Relate guest to selected event/project ---
         ...(eventId ? { "Events Attended": { relation: [{ id: eventId }] } } : {})
       }
