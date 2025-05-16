@@ -645,8 +645,8 @@ export default {
         "Membership Type": { multi_select: [{ name: "Guest" }] },
         // Optional: Add a 'Timestamp' property (Type: Date) in Notion 
         "Guestbook Date": { date: { start: new Date().toISOString() } },
-        // Add Phone field with proper phone type
-        "Phone": { phone: phone },
+        // Add Phone field with proper phone_number type
+        "Phone": { phone_number: phone },
         // Add Contact Preference field with proper select type
         "Contact Preference": { select: { name: contactPreference } },
         // Add Source field with proper select type
