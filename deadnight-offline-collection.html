@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dead Night Guestbook - Offline Collection</title>
+    <style>
+        body { 
+            font-family: sans-serif; 
+            line-height: 1.6; 
+            padding: 20px; 
+            max-width: 500px; 
+            margin: auto; 
+            background-color: #111; 
+            color: #ddd;
+        }
+        form { 
+            background: #222; 
+            padding: 25px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3); 
+        }
+        h1 { 
+            text-align: center; 
+            color: #f93; 
+            margin-bottom: 5px;
+        }
+        .event-date {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #aaa;
+        }
+        .badge {
+            display: inline-block;
+            background-color: #4a4;
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .alert {
+            background-color: #520;
+            color: #fa3;
+            border-left: 4px solid #f93;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+        label, input, textarea, select { 
+            display: block; 
+            width: 100%; 
+            margin-bottom: 15px; 
+            box-sizing: border-box; 
+        }
+        input[type="text"], input[type="email"], input[type="tel"], textarea, select {
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background-color: #333;
+            color: #fff;
+        }
+        select option {
+            background-color: #333;
+            color: #fff;
+        }
+        textarea { 
+            height: 100px; 
+            resize: vertical; 
+        }
+        button { 
+            background-color: #f93; 
+            color: #111; 
+            padding: 12px 20px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.2s ease;
+            font-weight: bold;
+        }
+        button:hover { 
+            background-color: #f72; 
+        }
+        .status-message { 
+            margin-top: 15px; 
+            padding: 10px; 
+            border-radius: 4px; 
+            text-align: center; 
+            display: none; 
+        }
+        .status-message.success { 
+            background-color: #143; 
+            color: #5f5; 
+            border: 1px solid #2c4; 
+        }
+        .status-message.error { 
+            background-color: #521; 
+            color: #f55; 
+            border: 1px solid #c23; 
+        }
+        .entries-container {
+            margin-top: 30px;
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .entry {
+            background: #222;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #f93;
+        }
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+        .entry-name {
+            font-weight: bold;
+            color: #f93;
+        }
+        .entry-email {
+            color: #aaa;
+            font-size: 0.9em;
+        }
+        .entry-message {
+            white-space: pre-wrap;
+        }
+        .entry-meta {
+            color: #888;
+            font-size: 0.8em;
+            margin-top: 10px;
+        }
+        .admin-panel {
+            margin-top: 30px;
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .admin-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .admin-button {
+            flex: 1;
+            background: #444;
+            color: #ddd;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .admin-button:hover {
+            background: #555;
+        }
+        .text-area-container {
+            margin-top: 15px;
+            display: none;
+        }
+        #exportData {
+            width: 100%;
+            height: 200px;
+            background: #222;
+            color: #ddd;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Dead Night</h1>
+    <div class="event-date">May 16, 2025</div>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <span class="badge">OFFLINE COLLECTION MODE</span>
+    </div>
+
+    <div class="alert">
+        <strong>⚠️ Temporary Offline Mode:</strong> We're experiencing issues connecting to our database. Your entries will be stored locally until connectivity is restored.
+    </div>
+
+    <form id="guestbook-form">
+        <label for="name">Name:</label>
+        <input id="name" name="name" placeholder="Your Name" required autocomplete="name">
+
+        <label for="email">Email:</label>
+        <input id="email" name="email" type="email" placeholder="your.email@example.com" required autocomplete="email">
+
+        <label for="phone">Phone (optional):</label>
+        <input id="phone" name="phone" type="tel" placeholder="(123) 456-7890" autocomplete="tel">
+        
+        <label for="contactPreference">Contact Preference:</label>
+        <select id="contactPreference" name="contactPreference" required>
+            <option value="" disabled selected>Select a contact preference...</option>
+            <option value="Do Not Contact">Do Not Contact</option>
+            <option value="Share Similar Events With Me">Share Similar Events With Me</option>
+            <option value="Share All Riverside Events With Me">Share All Riverside Events With Me</option>
+        </select>
+
+        <label for="message">Message:</label>
+        <textarea id="message" name="message" placeholder="Leave a message..." required></textarea>
+        
+        <button type="submit">Sign Guestbook</button>
+        
+        <div id="status-message" class="status-message"></div>
+    </form>
+
+    <div class="entries-container" id="entries-container">
+        <h2>Recent Entries</h2>
+        <div id="entries-list">
+            <!-- Entries will be added here -->
+        </div>
+    </div>
+
+    <div class="admin-panel">
+        <h2>Administrator Panel</h2>
+        <div class="admin-buttons">
+            <button class="admin-button" id="exportButton">Export Entries as JSON</button>
+            <button class="admin-button" id="clearButton">Clear All Entries</button>
+        </div>
+        <div class="text-area-container" id="textAreaContainer">
+            <p>Copy this data to import into Notion later:</p>
+            <textarea id="exportData" readonly></textarea>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const form = document.getElementById('guestbook-form');
+        const statusMessage = document.getElementById('status-message');
+        const entriesList = document.getElementById('entries-list');
+        const exportButton = document.getElementById('exportButton');
+        const clearButton = document.getElementById('clearButton');
+        const textAreaContainer = document.getElementById('textAreaContainer');
+        const exportData = document.getElementById('exportData');
+        
+        // Storage key for entries
+        const STORAGE_KEY = 'deadnight-guestbook-entries';
+        
+        // Load existing entries on page load
+        document.addEventListener('DOMContentLoaded', loadEntries);
+        
+        // Event listeners
+        form.addEventListener('submit', handleSubmit);
+        exportButton.addEventListener('click', handleExport);
+        clearButton.addEventListener('click', handleClear);
+        
+        function handleSubmit(e) {
+            e.preventDefault();
+            statusMessage.style.display = 'none';
+            statusMessage.className = 'status-message';
+            
+            try {
+                // Get form data
+                const entry = {
+                    name: form.name.value.trim(),
+                    email: form.email.value.trim(),
+                    phone: form.phone.value.trim(),
+                    contactPreference: form.contactPreference.value,
+                    message: form.message.value.trim(),
+                    timestamp: new Date().toISOString(),
+                    event: "Dead Night 5/16/25"
+                };
+                
+                // Save entry
+                saveEntry(entry);
+                
+                // Show success message
+                statusMessage.textContent = "Thank you! Your message has been added to the Dead Night guestbook.";
+                statusMessage.classList.add('success');
+                statusMessage.style.display = 'block';
+                
+                // Reset form
+                form.reset();
+                
+                // Reload entries
+                loadEntries();
+            } catch (error) {
+                console.error('Error saving entry:', error);
+                statusMessage.textContent = "An error occurred while saving your entry. Please try again.";
+                statusMessage.classList.add('error');
+                statusMessage.style.display = 'block';
+            }
+        }
+        
+        function saveEntry(entry) {
+            // Get existing entries
+            const entries = getEntries();
+            
+            // Add new entry
+            entries.unshift(entry);
+            
+            // Save to localStorage
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        }
+        
+        function getEntries() {
+            const entriesJson = localStorage.getItem(STORAGE_KEY);
+            return entriesJson ? JSON.parse(entriesJson) : [];
+        }
+        
+        function loadEntries() {
+            const entries = getEntries();
+            
+            if (entries.length === 0) {
+                entriesList.innerHTML = '<p>No entries yet.</p>';
+                return;
+            }
+            
+            entriesList.innerHTML = '';
+            
+            entries.forEach(entry => {
+                const entryEl = document.createElement('div');
+                entryEl.className = 'entry';
+                
+                const date = new Date(entry.timestamp);
+                const formattedDate = date.toLocaleString();
+                
+                entryEl.innerHTML = `
+                    <div class="entry-header">
+                        <div class="entry-name">${escapeHtml(entry.name)}</div>
+                        <div class="entry-email">${escapeHtml(entry.email)}</div>
+                    </div>
+                    <div class="entry-message">${escapeHtml(entry.message)}</div>
+                    <div class="entry-meta">
+                        Phone: ${entry.phone ? escapeHtml(entry.phone) : 'N/A'} | 
+                        Contact: ${escapeHtml(entry.contactPreference)} | 
+                        Submitted: ${formattedDate}
+                    </div>
+                `;
+                
+                entriesList.appendChild(entryEl);
+            });
+        }
+        
+        function handleExport() {
+            const entries = getEntries();
+            
+            // Format for Notion import (matching the worker format)
+            const formattedEntries = entries.map(entry => {
+                // Format how the original worker would format it for Notion
+                return {
+                    name: entry.name,
+                    email: entry.email,
+                    phone: entry.phone,
+                    contactPreference: entry.contactPreference,
+                    message: entry.message,
+                    timestamp: entry.timestamp,
+                    event: entry.event
+                };
+            });
+            
+            // Display formatted JSON
+            exportData.value = JSON.stringify(formattedEntries, null, 2);
+            textAreaContainer.style.display = 'block';
+            
+            // Auto-select text for easy copying
+            exportData.select();
+        }
+        
+        function handleClear() {
+            if (confirm('Are you sure you want to clear all entries? This cannot be undone.')) {
+                localStorage.removeItem(STORAGE_KEY);
+                loadEntries();
+                textAreaContainer.style.display = 'none';
+            }
+        }
+        
+        // Helper function to escape HTML
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+
+</body>
+</html>
